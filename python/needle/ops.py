@@ -179,26 +179,43 @@ class BroadcastTo(TensorOp):
         return array_api.broadcast_to(a, self.shape)
 
     def gradient(self, out_grad, node):
-        ### BEGIN YOUR SOLUTION
+        
         input_shape = node.inputs[0].shape
         input_dim = node.inputs[0].ndim - 1
-        grad_data = out_grad.numpy()
         
-        out_shape = self.shape
-        output_dim = len(out_shape) - 1
+        output_shape = self.shape
+        output_dim = len(output_shape) - 1
         # match from right to left, ouput_ndim 一定>= input_ndim
+        # while input_dim >= 0 and output_dim >= 0:
+        #     if (input_shape[input_dim] == 1 and out_shape[output_dim] > 1):
+        #         out_grad = summation(out_grad, axis=output_dim, keepdims=True)
+        #     input_dim -= 1
+        #     output_dim -= 1
+
+        # if (output_dim >= 0):
+        #     grad_data = array_api.sum(grad_data, axis=tuple(range(output_dim+1)))
+
+        # return Tensor(grad_data)
+
+        ### BEGIN YOUR SOLUTION
+        # 用summation去做
+        if input_shape == output_shape:
+            return out_grad
+
+        summation_dims = []
         while input_dim >= 0 and output_dim >= 0:
-            if (input_shape[input_dim] == 1 and out_shape[output_dim] > 1):
-                grad_data = array_api.sum(grad_data, axis=output_dim, keepdims=True)
+            if (input_shape[input_dim] == 1 and output_shape[output_dim] > 1):
+                summation_dims.append(output_dim)
             input_dim -= 1
             output_dim -= 1
-
+        
         if (output_dim >= 0):
-            grad_data = array_api.sum(grad_data, axis=tuple(range(output_dim+1)))
+            summation_dims.extend(range(output_dim+1))
 
-        return Tensor(grad_data)
+        
+        return reshape(summation(out_grad, tuple(summation_dims)), input_shape)
+
         ### END YOUR SOLUTION
-
 
 def broadcast_to(a, shape):
     return BroadcastTo(shape)(a)
@@ -215,9 +232,18 @@ class Summation(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        a = node.inputs[0]
-        tmp = array_api.expand_dims(out_grad.numpy(), self.axes)
-        return broadcast_to(Tensor(tmp), a.shape) * Tensor(array_api.ones(a.shape))
+        input_shape = node.inputs[0].shape
+        input_dim = node.inputs[0].ndim
+        output_shape = out_grad.shape
+        output_dim = out_grad.ndim
+        tmp_reshape = list(input_shape)
+        if self.axes is None:
+            # 求和成1个scalar
+            return broadcast_to(out_grad, input_shape)
+        
+        for summed_axe in self.axes:
+            tmp_reshape[summed_axe] = 1
+        return broadcast_to(reshape(out_grad, tuple(tmp_reshape)), input_shape)
         ### END YOUR SOLUTION
 
 

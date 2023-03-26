@@ -41,4 +41,16 @@ def gradient_check(f, *args, tol=1e-6, backward=False, **kwargs):
 # gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5,4)), axes=(0,))
 # gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5,4)), axes=(0,1))
 # gradient_check(ndl.summation, ndl.Tensor(np.random.randn(5,4,1)), axes=(0,1))
-gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(1, 3)), shape=(3, 3))
+# gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(1, 3)), shape=(3, 3))
+# gradient_check(ndl.broadcast_to, ndl.Tensor(np.random.randn(1,)), shape=(3, 3, 3))
+gradient_check(lambda A,B,C : ndl.summation((A@B+C)*(A@B), axes=None),
+                   ndl.Tensor(np.random.randn(10,9)),
+                   ndl.Tensor(np.random.randn(9,8)),
+                   ndl.Tensor(np.random.randn(10,8)), backward=True)
+# gradient_check(lambda A,B : ndl.summation(ndl.broadcast_to(A,shape=(10,9))*B, axes=None),
+#                 ndl.Tensor(np.random.randn(10,1)),
+#                 ndl.Tensor(np.random.randn(10,9)), backward=True)
+# gradient_check(lambda A,B,C : ndl.summation(ndl.reshape(A,shape=(10,10))@B/5+C, axes=None),
+#                 ndl.Tensor(np.random.randn(100)),
+#                 ndl.Tensor(np.random.randn(10,5)),
+#                    ndl.Tensor(np.random.randn(10,5)), backward=True)
