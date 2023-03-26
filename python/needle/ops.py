@@ -241,8 +241,12 @@ class Summation(TensorOp):
             # 求和成1个scalar
             return broadcast_to(out_grad, input_shape)
         
-        for summed_axe in self.axes:
-            tmp_reshape[summed_axe] = 1
+        if isinstance(self.axes, tuple):
+            for summed_axe in self.axes:
+                tmp_reshape[summed_axe] = 1
+        if isinstance(self.axes, int):
+            tmp_reshape[self.axes] = 1
+
         return broadcast_to(reshape(out_grad, tuple(tmp_reshape)), input_shape)
         ### END YOUR SOLUTION
 
@@ -303,12 +307,12 @@ def negate(a):
 class Log(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return array_api.log(a)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad / node.inputs[0]
         ### END YOUR SOLUTION
 
 
@@ -319,12 +323,12 @@ def log(a):
 class Exp(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return array_api.exp(a)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return out_grad * exp(node.inputs[0])
         ### END YOUR SOLUTION
 
 
@@ -336,12 +340,15 @@ def exp(a):
 class ReLU(TensorOp):
     def compute(self, a):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.relu_mask = a > 0
+        
+        return self.relu_mask * a
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        relu_mask = Tensor((node.inputs[0].cached_data > 0).astype(out_grad.numpy().dtype))
+        return out_grad * relu_mask
         ### END YOUR SOLUTION
 
 

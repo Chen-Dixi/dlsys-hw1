@@ -7,7 +7,7 @@ sys.path.append('python/')
 import needle as ndl
 
 
-def parse_mnist(image_filesname, label_filename):
+def parse_mnist(image_filename, label_filename):
     """ Read an images and labels file in MNIST format.  See this page:
     http://yann.lecun.com/exdb/mnist/ for a description of the file format.
 
@@ -30,7 +30,17 @@ def parse_mnist(image_filesname, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    with gzip.open(image_filename, 'rb') as img_file:
+        magic, nums, rows, cols = struct.unpack('>IIII', img_file.read(16))
+        images = np.fromstring(img_file.read(), dtype=np.uint8).reshape(nums,-1).astype(np.float32)
+    _range = np.max(images) - np.min(images)
+    images = (images - np.min(images)) / _range
+
+    with gzip.open(label_filename, 'rb') as label_file:
+        magic, nums = struct.unpack('>II', label_file.read(8))
+        labels = np.fromstring(label_file.read(), dtype=np.uint8)
+
+    return images, labels
     ### END YOUR SOLUTION
 
 
@@ -51,7 +61,12 @@ def softmax_loss(Z, y_one_hot):
         Average softmax loss over the sample. (ndl.Tensor[np.float32])
     """
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # return np.average(np.log(np.exp(Z).sum(axis=1)) - np.take_along_axis(Z, np.expand_dims(y, axis=1), axis=1).squeeze())
+    batch = Z.shape[0]
+    z_log = ndl.log(ndl.exp(Z).sum(axes=1)).sum()
+    z_y = (Z * y_one_hot).sum()
+    loss = z_log - z_y
+    return loss / batch
     ### END YOUR SOLUTION
 
 
@@ -80,9 +95,39 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
     """
 
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    num_examples = X.shape[0]
+    i = 0
+    
+    while i + batch <= num_examples:
+        inputs = X[i:i+batch]
+        labels = y[i:i+batch]
+        nn_epoch_batch(inputs, labels, W1, W2, lr)
+        i += batch
+    
+    if i < num_examples:
+        inputs = X[i:num_examples]
+        labels = y[i:num_examples]
+        nn_epoch_batch(inputs, labels, W1, W2, lr, batch)
     ### END YOUR SOLUTION
 
+    return W1, W2
+
+def nn_epoch_batch(X, y, W1, W2, lr = 0.1, batch=100):
+    inputs = ndl.Tensor(X)
+    num_classes = W2.shape[-1]
+    ## linear
+    logit = ndl.relu(ndl.matmul(inputs, W1))
+    logit = ndl.matmul(logit, W2)
+    y_one_hot = np.zeros((y.shape[0], num_classes))
+    y_one_hot[np.arange(y.size), y] = 1
+    y_one_hot = ndl.Tensor(y_one_hot)
+    loss = softmax_loss(logit, y_one_hot)
+    loss.backward()
+
+    # step and clear grad
+    W1.data = ndl.Tensor((W1.numpy() - lr * W1.grad.numpy()).astype(W1.dtype))
+    W2.data = ndl.Tensor((W2.numpy() - lr * W2.grad.numpy()).astype(W2.dtype))
+    
 
 ### CODE BELOW IS FOR ILLUSTRATION, YOU DO NOT NEED TO EDIT
 
