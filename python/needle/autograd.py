@@ -289,6 +289,10 @@ class Tensor(Value):
         )
         self.cached_data = value.realize_cached_data()
 
+    def astype(self, dtype):
+        self.cached_data = self.realize_cached_data().astype(dtype)        
+        return self
+
     def detach(self):
         """Create a new tensor that shares the data but detaches from the graph."""
         return Tensor.make_const(self.realize_cached_data())
